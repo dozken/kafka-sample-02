@@ -1,0 +1,21 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:29092
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        acks: all
+        spring.json.trusted.package: com.common
+        spring.json.type.mapping: foo:com.common.Foo1,bar:com.common.Bar1
+    consumer:
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: latest
+      isolation-level: read_committed
+      properties:
+        spring.json.trusted.package: com.common
+        spring.json.type.mapping: foo:com.common.Foo2,bar:com.common.Bar2
+
+#        reconnect.backoff:
+#          ms: 100
+#          max.ms: 1000
