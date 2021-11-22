@@ -1,6 +1,5 @@
 spring:
   kafka:
-    bootstrap-servers: localhost:29092
     producer:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
@@ -10,7 +9,8 @@ spring:
         spring.json.type.mapping: foo:com.common.Foo,bar:com.common.Bar
     consumer:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      auto-offset-reset: latest
+      #need this for test
+      auto-offset-reset: earliest
       isolation-level: read_committed
       enable-auto-commit: false
       properties:

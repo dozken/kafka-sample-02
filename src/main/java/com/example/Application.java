@@ -1,97 +1,55 @@
-/*
- * Copyright 2018-2021 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.example;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.kafka.clients.admin.NewTopic;
-
-import org.springframework.boot.ApplicationRunner;
+import com.common.Bar;
+import com.common.Foo;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
-import org.springframework.kafka.core.KafkaOperations;
-import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
-import org.springframework.kafka.listener.SeekToCurrentErrorHandler;
-import org.springframework.kafka.support.converter.ByteArrayJsonMessageConverter;
-import org.springframework.kafka.support.converter.DefaultJackson2JavaTypeMapper;
-import org.springframework.kafka.support.converter.Jackson2JavaTypeMapper.TypePrecedence;
-import org.springframework.kafka.support.converter.RecordMessageConverter;
-import org.springframework.util.backoff.FixedBackOff;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.common.Bar2;
-import com.common.Foo2;
+import java.util.UUID;
 
-/**
- * Sample shows use of a multi-method listener.
- *
- * @author Gary Russell
- * @since 2.2.1
- *
- */
+import static com.example.Application.MULTI_CONSUMER_TOPIC;
+
+
 @SpringBootApplication
 public class Application {
 
-	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args).close();
-	}
+    public static final String MULTI_CONSUMER_TOPIC = "multi-consumer-topic";
 
-	/*
-	 * Boot will autowire this into the container factory.
-	 */
-//	@Bean
-//	public SeekToCurrentErrorHandler errorHandler(KafkaOperations<Object, Object> template) {
-//		return new SeekToCurrentErrorHandler(
-//				new DeadLetterPublishingRecoverer(template), new FixedBackOff(1000L, 2));
-//	}
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
 
-//	@Bean
-//	public RecordMessageConverter converter() {
-//		ByteArrayJsonMessageConverter converter = new ByteArrayJsonMessageConverter();
-//		DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
-//		typeMapper.setTypePrecedence(TypePrecedence.TYPE_ID);
-//		typeMapper.addTrustedPackages("com.common");
-//		Map<String, Class<?>> mappings = new HashMap<>();
-//		mappings.put("foo", Foo2.class);
-//		mappings.put("bar", Bar2.class);
-//		typeMapper.setIdClassMapping(mappings);
-//		converter.setTypeMapper(typeMapper);
-//		return converter;
-//	}
+}
 
-	@Bean
-	public NewTopic foos() {
-		return new NewTopic("foos", 1, (short) 1);
-	}
+@RestController
+@RequiredArgsConstructor
+class Controller {
 
-	@Bean
-	public NewTopic bars() {
-		return new NewTopic("bars", 1, (short) 1);
-	}
+    private final KafkaTemplate<Object, Object> template;
 
-	@Bean
-	@Profile("default") // Don't run from test(s)
-	public ApplicationRunner runner() {
-		return args -> {
-			System.out.println("Hit Enter to terminate...");
-			System.in.read();
-		};
-	}
+    @PostMapping(path = "/send/foo/{what}")
+    public void sendFoo(@PathVariable String what) {
+        send(new Foo(what));
+    }
+
+    @PostMapping(path = "/send/bar/{what}")
+    public void sendBar(@PathVariable String what) {
+        send(new Bar(what));
+    }
+
+    @PostMapping(path = "/send/unknown/{what}")
+    public void sendUnknown(@PathVariable String what) {
+        send(what);
+    }
+
+
+    public void send(Object obj) {
+        template.send(MULTI_CONSUMER_TOPIC, UUID.randomUUID().toString(), obj);
+    }
 
 }
